@@ -1,0 +1,177 @@
+[
+    {
+        "id": 14431,
+        "name": "api-kronk",
+        "description": "kronk api",
+        "image": null,
+        "website": "https://profile.intra.42.fr/users/kronk",
+        "public": true,
+        "scopes": [
+            "public",
+            "projects",
+            "profile",
+            "elearning",
+            "tig",
+            "forum"
+        ],
+        "created_at": "2023-06-27T11:23:13.673Z",
+        "updated_at": "2023-08-10T13:43:25.238Z",
+        "owner": {
+            "id": 154302,
+            "login": "kronk",
+            "url": "https://api.intra.42.fr/v2/users/kronk"
+        },
+        "rate_limit": 1200,
+        "roles": [
+            {
+                "id": 13,
+                "name": "Achievements Manager",
+                "description": "Manage users achievements and titles"
+            },
+            {
+                "id": 5,
+                "name": "Basic Tutor",
+                "description": "Manage projects, scales and all cursus related data"
+            },
+            {
+                "id": 26,
+                "name": "Transactions Manager",
+                "description": "Can manage altarian dollars"
+            },
+            {
+                "id": 7,
+                "name": "Basic Staff",
+                "description": "Member of the staff, can manage community services, closes, exams and access advanced student data"
+            },
+            {
+                "id": 8,
+                "name": "Advanced Staff",
+                "description": "Member of the staff, with higher privileges"
+            },
+            {
+                "id": 6,
+                "name": "Advanced Tutor",
+                "description": "Manage skills, cursus and all low level pedagogic data"
+            }
+        ]
+    },
+    {
+        "id": 14433,
+        "name": "api-red",
+        "description": "",
+        "image": null,
+        "website": "",
+        "public": true,
+        "scopes": [
+            "public",
+            "projects",
+            "profile",
+            "elearning",
+            "tig",
+            "forum"
+        ],
+        "created_at": "2023-06-27T11:45:59.420Z",
+        "updated_at": "2023-08-01T08:00:07.492Z",
+        "owner": {
+            "id": 154301,
+            "login": "red",
+            "url": "https://api.intra.42.fr/v2/users/red"
+        },
+        "rate_limit": 1200,
+        "roles": [
+            {
+                "id": 13,
+                "name": "Achievements Manager",
+                "description": "Manage users achievements and titles"
+            },
+            {
+                "id": 5,
+                "name": "Basic Tutor",
+                "description": "Manage projects, scales and all cursus related data"
+            },
+            {
+                "id": 26,
+                "name": "Transactions Manager",
+                "description": "Can manage altarian dollars"
+            },
+            {
+                "id": 7,
+                "name": "Basic Staff",
+                "description": "Member of the staff, can manage community services, closes, exams and access advanced student data"
+            },
+            {
+                "id": 6,
+                "name": "Advanced Tutor",
+                "description": "Manage skills, cursus and all low level pedagogic data"
+            }
+        ]
+    },
+    {
+        "id": 14442,
+        "name": "Protocole Beta",
+        "description": "",
+        "image": "/uploads/doorkeeper/application/image/14442/omega_fork.png",
+        "website": "",
+        "public": true,
+        "scopes": [],
+        "created_at": "2023-06-27T15:30:38.294Z",
+        "updated_at": "2023-08-15T08:00:06.908Z",
+        "owner": {
+            "id": 128559,
+            "login": "ngennaro",
+            "url": "https://api.intra.42.fr/v2/users/ngennaro"
+        },
+        "rate_limit": 1200,
+        "roles": []
+    },
+    {
+        "id": 14445,
+        "name": "Transcendence",
+        "description": "Pong game",
+        "image": null,
+        "website": "",
+        "public": true,
+        "scopes": [
+            "public",
+            "projects",
+            "profile",
+            "elearning",
+            "tig",
+            "forum"
+        ],
+        "created_at": "2023-06-27T20:43:05.941Z",
+        "updated_at": "2023-08-15T09:00:09.673Z",
+        "owner": {
+            "id": 80769,
+            "login": "gleal",
+            "url": "https://api.intra.42.fr/v2/users/gleal"
+        },
+        "rate_limit": 1200,
+        "roles": []
+    },
+    {
+        "id": 14446,
+        "name": "Transcendence",
+        "description": "",
+        "image": null,
+        "website": "",
+        "public": true,
+        "scopes": [
+            "public",
+            "projects",
+            "profile",
+            "elearning",
+            "tig",
+            "forum"
+        ],
+        "created_at": "2023-06-27T20:48:14.176Z",
+        "updated_at": "2023-08-15T09:00:09.700Z",
+        "owner": {
+            "id": 82740,
+            "login": "josantos",
+            "url": "https://api.intra.42.fr/v2/users/josantos"
+        },
+        "rate_limit": 1200,
+        "roles": []
+    }
+]
