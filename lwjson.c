@@ -1,17 +1,35 @@
 
 #include <string.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-#define FT_CHECK(status, ret, ch,  ...){\
-	if (!(status))\
-	{\
-		ch(STDERR_FILENO, __VA_ARGS__);\
-		return (ret);\
-	}\
+#ifdef DEBUG_MODE
+# define PRINT		fprintf
+# define NOP_PARAM
+#else
+# define PRINT		(void)
+# define NOP_PARAM	(void)
+#endif
+
+
+#define FT_CHECK(status, ret, ...){			\
+	if (!(status))					\
+	{						\
+		PRINT(NOP_PARAM stderr, __VA_ARGS__);	\
+		return (ret);				\
+	}						\
+}
+
+#define FT_ASSERT(status, ret, ...){			\
+	if (!(status))					\
+	{						\
+		fprintf(stderr, __VA_ARGS__);		\
+		exit(ret);				\
+	}						\
 }
 
 
@@ -24,6 +42,9 @@
 #define ESTR	2
 #define ENFND	3
 #define EBUFF	4
+
+static int
+jumpto(const char **str, const char c);
 
 
 static int
@@ -50,75 +71,77 @@ key_len(const char *str)
 }
 
 static int
+jumpto_dquote(const char **str)
+{
+	++(*str);
+	while (**str && **str != '"')
+		++(*str);
+	if (!**str)
+		return (-1);
+	++(*str);
+	return (0);
+}
+
+static int
+jumpto_bracket(const char **str, const char c)
+{
+	++(*str);
+	while (**str && **str != c)
+	{
+		if ('"' == **str || '{' == **str || '[' == **str)
+		{
+			if (0 > jumpto(str, **str))
+				return (-1);
+		}
+		else
+			++(*str);
+	}
+	if (!**str)
+		return (-1);
+	++(*str);
+	return (0);
+}
+
+static int
+jumpto_number(const char **str)
+{
+	while (**str && (isdigit(**str) || '.' == **str))
+		++(*str);
+	if (!**str)
+		return (-1);
+	return (0);
+}
+
+static int
 jumpto(const char **str, const char c)
 {
 	switch(c)
 	{
 		case '"':
-			++(*str);
-			while (**str && **str != '"')
-				++(*str);
-			if (!**str)
-				return (-1);
-			++(*str);
-			break;
+			return (jumpto_dquote(str));
 		case '{':
-			++(*str);
-			while (**str && **str != '}')
-			{
-				if ('"' == **str || '{' == **str || '[' == **str)
-				{
-					if (0 > jumpto(str, **str))
-						return (-1);
-				}
-				else
-					++(*str);
-			}
-			if (!**str)
-				return (-1);
-				++(*str);
-			break ;
+			return (jumpto_bracket(str, '}'));
 		case '[':
-			++(*str);
-			while (**str && **str != ']')
-			{
-				if ('"' == **str || '{' == **str || '[' == **str)
-				{
-					if (0 > jumpto(str, **str))
-						return (-1);
-				}
-				else
-					++(*str);
-			}
-			if (!**str)
-				return (-1);
-			++(*str);
-			break ;
+			return (jumpto_bracket(str, ']'));	
 		case 't':
 			if (!strncmp("true", *str, strlen("true")))
-				*str += strlen("true");
+				return ((*str += strlen("true")), 0);
 			break ;
 		case 'f':
 			if (!strncmp("false", *str, strlen("fasle")))
-				*str += strlen("fasle");
+				return ((*str += strlen("fasle")), 0);
 			break ;
 		case 'n':
 			if (!strncmp("null", *str, strlen("null")))
-				*str += strlen("null");
+				return ((*str += strlen("null")), 0);
 			break ;
 		default:
-			if (**str && isdigit(**str) || '.' == **str)
-			{
-				while (**str && (isdigit(**str) || '.' == **str))
-					++(*str);
-				if (!**str)
-					return (-1);
-				break ;
-			}
+			if (**str && (isdigit(**str) || '.' == **str))
+				return (jumpto_number(str));
 			else
 				return (-1);
 	}
-	return (0);
+	return (-1);
 }
 
 static int
@@ -126,7 +149,6 @@ parse_array(const char *fmt, const char **begin, const char **end)
 {
 	int		k;
 	int		i;
-	int		fmt_len;
 	const char	*str;
 	const char	*tmp;
 
@@ -136,18 +158,18 @@ parse_array(const char *fmt, const char **begin, const char **end)
 	++str;
 	while (i < k)
 	{
-		FT_CHECK( -1 < space_iter(&str) && str < *end, -ESTR, (void), "");
+		FT_CHECK( -1 < space_iter(&str) && str < *end, -ESTR, "\n");
 		if (!*str || 0 > jumpto(&str, *str) || str >= *end)
 			return (-ESTR);
-		FT_CHECK( -1 < space_iter(&str) && str < *end, -ESTR, (void), "");
+		FT_CHECK( -1 < space_iter(&str) && str < *end, -ESTR, "\n");
 		if (']' == *str)
 			return (-ENFND);
 		if (',' != *str)
 			return (-ESTR);
-			++str;
+		++str;
 		++i;
 	}
-	FT_CHECK( -1 < space_iter(&str) && str < *end, -ESTR, (void), "");
+	FT_CHECK( -1 < space_iter(&str) && str < *end, -ESTR, "\n");
 	tmp = str;
 	if (!*str || 0 > jumpto(&str, *str) || str >= *end)
 		return (-ESTR);
@@ -173,8 +195,8 @@ parse_obj(const char *fmt, const char **begin, const char **end)
 		return (-EFMT);
 	while (*str)
 	{
-		FT_CHECK( -1 < space_iter(&str) && str < *end, -ESTR, (void), "");
-		FT_CHECK( '\"' == *str , -ESTR, (void), "");
+		FT_CHECK( -1 < space_iter(&str) && str < *end, -ESTR, "\n");
+		FT_CHECK( '\"' == *str , -ESTR, "\n");
 		str_len = key_len(++str);
 		if (!str_len)
 			return (-ESTR);
@@ -183,7 +205,7 @@ parse_obj(const char *fmt, const char **begin, const char **end)
 		while (*str && ':' != *str)
 			++str;
 		++str;
-		FT_CHECK( -1 < space_iter(&str) && str < *end, -ESTR, (void), "");
+		FT_CHECK( -1 < space_iter(&str) && str < *end, -ESTR, "\n");
 		tmp = str;
 		if (!*str || 0 > jumpto(&str, *str) || str >= *end)
 			return (-ESTR);
@@ -193,17 +215,17 @@ parse_obj(const char *fmt, const char **begin, const char **end)
 			*end = str;
 			return (0);
 		}
-		FT_CHECK( -1 < space_iter(&str) && str < *end, -ESTR, (void), "");
+		FT_CHECK( -1 < space_iter(&str) && str < *end, -ESTR, "\n");
 		if ('}' == *str)
 			return (-ENFND);
 		if (',' != *str)
 			return (-ESTR);
-			++str;
+		++str;
 	}
 	return (-ENFND);
 }
 
-int
+static int
 exec_type(const char *begin, const char *end, va_list *args)
 {
 	char	*buff;
@@ -232,7 +254,7 @@ parse_any(const char *str, const char *fmt, va_list *args)
 	const char	*begin;
 	const char	*end;
 
-	FT_CHECK( -1 < space_iter(&str), -ESTR, (void), "");
+	FT_CHECK( -1 < space_iter(&str), -ESTR, "\n");
 	len = strlen(str);
 	begin = str;
 	end = str + len;
@@ -282,8 +304,9 @@ int main(int ac, char *av[])
 	int	fd;
 	int	ret;
 
+	(void)ac;
 	fd = open(av[1], O_RDONLY);
-	assert(0 < fd);
+	FT_ASSERT(0 < fd, -1,"fd < 0\n");
 	ret = read(fd, strbuf, 10000);
 	assert(0 <= ret);
 	strbuf[ret] = 0;
