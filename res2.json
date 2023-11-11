@@ -1,0 +1,56 @@
+    {
+        "id": 14431,
+        "name": "api-kronk",
+        "description": "kronk api",
+        "image": null,
+        "website": "https://profile.intra.42.fr/users/kronk",
+        "public": true,
+        "scopes": [
+            "public",
+            "projects",
+            "profile",
+            "elearning",
+            "tig",
+            "forum"
+        ],
+        "created_at": "2023-06-27T11:23:13.673Z",
+        "updated_at": "2023-08-10T13:43:25.238Z",
+        "owner": {
+            "id": 154302,
+            "login": "kronk",
+            "url": "https://api.intra.42.fr/v2/users/kronk"
+        },
+        "rate_limit": 1200,
+        "roles": [
+            {
+                "id": 13,
+                "name": "Achievements Manager",
+                "description": "Manage users achievements and titles"
+            },
+            {
+                "id": 5,
+                "name": "Basic Tutor",
+                "description": "Manage projects, scales and all cursus related data"
+            },
+            {
+                "id": 26,
+                "name": "Transactions Manager",
+                "description": "Can manage altarian dollars"
+            },
+            {
+                "id": 7,
+                "name": "Basic Staff",
+                "description": "Member of the staff, can manage community services, closes, exams and access advanced student data"
+            },
+            {
+                "id": 8,
+                "name": "Advanced Staff",
+                "description": "Member of the staff, with higher privileges"
+            },
+            {
+                "id": 6,
+                "name": "Advanced Tutor",
+                "description": "Manage skills, cursus and all low level pedagogic data"
+            }
+        ]
+    },

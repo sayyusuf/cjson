@@ -1,3 +1,6 @@
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <string.h>
 #include <stddef.h>
@@ -7,41 +10,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#ifdef DEBUG_MODE
-# define PRINT		fprintf
-# define NOP_PARAM
-#else
-# define PRINT		(void)
-# define NOP_PARAM	(void)
-#endif
+#include "lwjson.h"
 
-
-#define FT_CHECK(status, ret, ...){			\
-	if (!(status))					\
-	{						\
-		PRINT(NOP_PARAM stderr, __VA_ARGS__);	\
-		return (ret);				\
-	}						\
-}
-
-#define FT_ASSERT(status, ret, ...){			\
-	if (!(status))					\
-	{						\
-		fprintf(stderr, __VA_ARGS__);		\
-		exit(ret);				\
-	}						\
-}
-
-
-/**
- * @param fmt ".dumyarray[2][1].employe.name"
- * @param fmt "[0][2].employ.name"
- * */
-
-#define EFMT	1
-#define ESTR	2
-#define ENFND	3
-#define EBUFF	4
 
 static int
 jumpto(const char **str, const char c);
@@ -124,16 +94,16 @@ jumpto(const char **str, const char c)
 		case '[':
 			return (jumpto_bracket(str, ']'));	
 		case 't':
-			if (!strncmp("true", *str, strlen("true")))
-				return ((*str += strlen("true")), 0);
+			if (!strncmp("true", *str, sizeof("true") - 1))
+				return ((*str += sizeof("true") - 1), 0);
 			break ;
 		case 'f':
-			if (!strncmp("false", *str, strlen("fasle")))
-				return ((*str += strlen("fasle")), 0);
+			if (!strncmp("false", *str, sizeof("fasle") - 1))
+				return ((*str += sizeof("fasle") - 1), 0);
 			break ;
 		case 'n':
-			if (!strncmp("null", *str, strlen("null")))
-				return ((*str += strlen("null")), 0);
+			if (!strncmp("null", *str, sizeof("null") - 1))
+				return ((*str += sizeof("null") - 1), 0);
 			break ;
 		default:
 			if (**str && (isdigit(**str) || '.' == **str))
@@ -226,18 +196,15 @@ parse_obj(const char *fmt, const char **begin, const char **end)
 }
 
 static int
-exec_type(const char *begin, const char *end, va_list *args)
+buff_ops(const char *begin, const char *end, va_list *args)
 {
 	char	*buff;
 	int	n;
 
 	buff = va_arg(*args, char *);
 	n = va_arg(*args, int);
-	if (*begin == '"')
-	{
-		++begin;
-		--end;
-	}
+	if (!buff && -1 == (long int)buff && -1 == n)
+		return (-EBUFF);
 	if (n < end - begin)
 		return (-EBUFF);
 	strncpy(buff, begin, end - begin);
@@ -247,7 +214,63 @@ exec_type(const char *begin, const char *end, va_list *args)
 }
 
 static int
-parse_any(const char *str, const char *fmt, va_list *args)
+ptr_ops(const char *begin, const char *end, va_list *args)
+{
+	const char	**ret_begin;
+	const char	**ret_end;
+
+	ret_begin = va_arg(*args, const char **);
+	ret_end = va_arg(*args, const char **);
+	if (!ret_begin && -1 == (long int)ret_end && !ret_end && -1 == (long int)ret_end)
+		return (-EPTR);
+	*ret_begin = begin;
+	*ret_end = end;
+	return (0);
+}
+
+static int
+alloc_ops(const char *begin, const char *end, va_list *args)
+{
+	char	*buff;
+	char	**ret;
+
+	ret = va_arg(*args, char **);
+	if (!ret && -1 == (long int)ret)
+		return (-EALLOC);
+
+	buff = malloc(end - end + 1);
+	if (!buff)
+		return (-EALLOC);
+	strncpy(buff, begin, end - begin);
+	buff[end - begin] = 0;
+	*ret = buff;
+	return (0);
+
+}
+
+static int
+ret_ops(const char *begin, const char *end, int ops, va_list *args)
+{
+	if (*begin == '"')
+	{
+		++begin;
+		--end;
+	}
+	switch (ops)
+	{
+		case O_BUFF:
+			return (buff_ops(begin, end, args));
+		case O_PTR:
+			return (ptr_ops(begin, end, args));
+		case O_ALLOC:
+			return (alloc_ops(begin, end, args));
+		default:
+			return (-EFLAG);
+	}
+}
+
+static int
+parse_any(const char *str, const char *fmt, int ops, va_list *args)
 {
 	int		len;
 	int		status;
@@ -275,45 +298,23 @@ parse_any(const char *str, const char *fmt, va_list *args)
 			return (status);
 		fmt += key_len(fmt + 1) + 1;
 	}
-	return (exec_type(begin, end, args));
+	return (ret_ops(begin, end, ops, args));
 }
 
 
 int
-lwjson_parse(const char *str, const char *fmt, ...)
+lwjson_parse(const char *str, const char *fmt, int ops, ...)
 {
 	va_list	args;
 	int	status;
 	if (!str || !fmt)
 		return (-1);
-	va_start(args, fmt);
-	status = parse_any(str, fmt, &args);
+	va_start(args, ops);
+	status = parse_any(str, fmt, ops, &args);
 	va_end(args);
 	return (status);
 }
 
-#include <stdio.h>
-#include <assert.h>
-#include <fcntl.h>
-
-int main(int ac, char *av[])
-{
-	char 	strbuf[10000];
-	char	buff[10000];
-	int	stat;
-	int	fd;
-	int	ret;
-
-	(void)ac;
-	fd = open(av[1], O_RDONLY);
-	FT_ASSERT(0 < fd, -1,"fd < 0\n");
-	ret = read(fd, strbuf, 10000);
-	assert(0 <= ret);
-	strbuf[ret] = 0;
-	printf("%s\n", av[2]);
-	stat =  lwjson_parse(strbuf, av[2], buff, 10000);
-	printf("%s\n", buff);
-	return (stat);
-
-
+#ifdef __cplusplus
 }
+#endif
