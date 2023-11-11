@@ -14,7 +14,6 @@ int main(int ac, char *av[])
 
 	(void)ac;
 	fd = open(av[1], O_RDONLY);
-	FT_ASSERT(0 < fd, -1,"fd < 0\n");
 	ret = read(fd, strbuf, 10000);
 	assert(0 <= ret);
 	strbuf[ret] = 0;

@@ -7,30 +7,6 @@ extern "C" {
 
 #include <stdlib.h>
 
-#ifdef DEBUG_MODE
-# define PRINT		fprintf
-# define NOP_PARAM
-#else
-# define PRINT		(void)
-# define NOP_PARAM	(void)
-#endif
-
-
-#define FT_CHECK(status, ret, ...){			\
-	if (!(status))					\
-	{						\
-		PRINT(NOP_PARAM stderr, __VA_ARGS__);	\
-		return (ret);				\
-	}						\
-}
-
-#define FT_ASSERT(status, ret, ...){			\
-	if (!(status))					\
-	{						\
-		fprintf(stderr, __VA_ARGS__);		\
-		exit(ret);				\
-	}						\
-}
 
 /**
  * @param fmt ".dummyarray[2][1].employe.name"

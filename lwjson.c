@@ -12,6 +12,29 @@ extern "C" {
 
 #include "lwjson.h"
 
+#ifdef DEBUG_MODE
+# define PRINT		fprintf
+# define NOP_PARAM
+#else
+# define PRINT		(void)
+# define NOP_PARAM	(void)
+#endif
+
+#define FT_CHECK(status, ret, ...){			\
+	if (!(status))					\
+	{						\
+		PRINT(NOP_PARAM stderr, __VA_ARGS__);	\
+		return (ret);				\
+	}						\
+}
+
+#define FT_ASSERT(status, ret, ...){			\
+	if (!(status))					\
+	{						\
+		fprintf(stderr, __VA_ARGS__);		\
+		exit(ret);				\
+	}						\
+}
 
 static int
 jumpto(const char **str, const char c);
@@ -206,9 +229,7 @@ buff_ops(const char *begin, const char *end, va_list *args)
 	FT_CHECK(buff && -1 != (long int)buff && -1 != n, -EBUFF, "lwjson: O_BUFF: PARAMS error!\n")
 	FT_CHECK(n >= end - begin, -EBUFF, "lwjson: O_BUFF: EBUFF error!\n")
 	strncpy(buff, begin, end - begin);
-	buff[end - begin] = 0;
-	return (0);
-
+	return (end - begin);
 }
 
 static int
@@ -223,7 +244,7 @@ ptr_ops(const char *begin, const char *end, va_list *args)
 		-EPARAMS, "lwjson: O_PTR: EPARAMS error!\n")
 	*ret_begin = begin;
 	*ret_end = end;
-	return (0);
+	return (end - begin);
 }
 
 static int
@@ -239,7 +260,7 @@ alloc_ops(const char *begin, const char *end, va_list *args)
 	strncpy(buff, begin, end - begin);
 	buff[end - begin] = 0;
 	*ret = buff;
-	return (0);
+	return (end - begin);
 
 }
 
@@ -311,6 +332,11 @@ lwjson_parse(const char *str, const char *fmt, int ops, ...)
 	va_end(args);
 	return (status);
 }
+
+# undef FT_CHECK
+# undef FT_ASSERT
+# undef PRINT
+# undef NOP_PARAM
 
 #ifdef __cplusplus
 }
