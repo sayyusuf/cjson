@@ -203,10 +203,8 @@ buff_ops(const char *begin, const char *end, va_list *args)
 
 	buff = va_arg(*args, char *);
 	n = va_arg(*args, int);
-	if (!buff && -1 == (long int)buff && -1 == n)
-		return (-EBUFF);
-	if (n < end - begin)
-		return (-EBUFF);
+	FT_CHECK(buff && -1 != (long int)buff && -1 != n, -EBUFF, "lwjson: O_BUFF: PARAMS error!\n")
+	FT_CHECK(n >= end - begin, -EBUFF, "lwjson: O_BUFF: EBUFF error!\n")
 	strncpy(buff, begin, end - begin);
 	buff[end - begin] = 0;
 	return (0);
@@ -221,8 +219,8 @@ ptr_ops(const char *begin, const char *end, va_list *args)
 
 	ret_begin = va_arg(*args, const char **);
 	ret_end = va_arg(*args, const char **);
-	if (!ret_begin && -1 == (long int)ret_end && !ret_end && -1 == (long int)ret_end)
-		return (-EPTR);
+	FT_CHECK(ret_begin && -1 != (long int)ret_begin && ret_end && -1 != (long int)ret_end, \
+		-EPARAMS, "lwjson: O_PTR: EPARAMS error!\n")
 	*ret_begin = begin;
 	*ret_end = end;
 	return (0);
@@ -235,12 +233,9 @@ alloc_ops(const char *begin, const char *end, va_list *args)
 	char	**ret;
 
 	ret = va_arg(*args, char **);
-	if (!ret && -1 == (long int)ret)
-		return (-EALLOC);
-
+	FT_CHECK(ret && -1 != (long int) ret, -EPARAMS, "lwjson: O_ALLOC: EPARAMS error!\n")
 	buff = malloc(end - end + 1);
-	if (!buff)
-		return (-EALLOC);
+	FT_CHECK(buff, -EALLOC, "lwjson:O_ALLOC: EALLOC error!\n")
 	strncpy(buff, begin, end - begin);
 	buff[end - begin] = 0;
 	*ret = buff;
@@ -265,8 +260,9 @@ ret_ops(const char *begin, const char *end, int ops, va_list *args)
 		case O_ALLOC:
 			return (alloc_ops(begin, end, args));
 		default:
-			return (-EFLAG);
+			return (-EOPS);
 	}
+	return (0);
 }
 
 static int
@@ -281,6 +277,7 @@ parse_any(const char *str, const char *fmt, int ops, va_list *args)
 	len = strlen(str);
 	begin = str;
 	end = str + len;
+	space_iter(&fmt);
 	while (*fmt)
 	{
 		switch(*fmt)
