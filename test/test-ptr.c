@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <fcntl.h>
-#include <lwjson.h>
+#include <cjson.h>
 #include <unistd.h>
 
 int main(int ac, char *av[])
@@ -20,7 +20,7 @@ int main(int ac, char *av[])
 	
 	char	*begin;
 	char	*end;	
-	stat =  lwjson_parse(strbuf, av[2], O_PTR, &begin, &end);
+	stat =  cjson_parse_str(strbuf, av[2]? av[2]: "", JO_PTR, &begin, &end);
 	while (begin < end)
 		printf("%c", *(begin++));
 	printf("\n");

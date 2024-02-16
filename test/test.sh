@@ -1,6 +1,6 @@
 #!/bin/bash
 
-gcc -Wall -Wextra -Werror -D DEBUG_MODE -I../ test-buff.c ../lwjson.c && ./a.out tmp.json "[0].id"
-gcc -Wall -Wextra -Werror -D DEBUG_MODE -I../ test-ptr.c ../lwjson.c && ./a.out tmp.json "[0].id"
-gcc -Wall -Wextra -Werror -D DEBUG_MODE -I../ test-alloc.c ../lwjson.c && ./a.out tmp.json "[0].id"
+gcc     -Wall -Wextra -Werror -D DEBUG_MODE  -fsanitize=address -g -I../ test-buff.c  ../cjson.c && ./a.out $1 $2
+gcc -O2 -Wall -Wextra -Werror -D DEBUG_MODE  -fsanitize=address -g -I../ test-ptr.c   ../cjson.c && ./a.out $1 $2
+gcc -O3 -Wall -Wextra -Werror -D DEBUG_MODE -fsanitize=address -g -I../ test-alloc.c ../cjson.c && ./a.out $1 $2
 
