@@ -7,15 +7,17 @@ extern "C" {
 
 #include <stdlib.h>
 
-#define EFMT		1
-#define ESTR		2
-#define EOPS		3
-#define EPARAMS		4
-#define ENFND		5
 
-#define EBUFF		6
-#define EPTR		7
-#define EALLOC		8
+#define EINP		1
+#define EFMT		2
+#define ESTR		3
+#define EOPS		4
+#define EPARAMS		5
+#define ENFND		6
+
+#define EBUFF		7
+#define EPTR		8
+#define EALLOC		9
 
 #define JO_BUFF		0
 #define JO_PTR		1
@@ -31,11 +33,44 @@ extern "C" {
  *`int cjson_parse(const char *str, const char *fmt, int ops, char **alloc);`
  */
 
+struct cjson_map
+{
+	void (*obj)(void *prv, const char *b_key, const char *e_key, const char *b_obj, const char *e_obj);
+	void (*arr)(void *prv, const char *b_obj, const char *e_obj);
+};
+
+struct cjson_match
+{
+	void (*obj)(void *prv, const char *b_obj, const char *e_obj);
+	void (*arr)(void *prv, const char *b_obj, const char *e_obj);
+	void (*str)(void *prv, const char *b_obj, const char *e_obj);
+	void (*num)(void *prv, const char *b_obj, const char *e_obj);
+	void (*bl)(void *prv, const char *b_obj, const char *e_obj);
+	void (*null)(void *prv, const char *b_obj, const char *e_obj);
+};
+
 int
 cjson_parse_str(const char *str, const char *fmt, int ops, ...);
 
 int
 cjson_parse_ptr(const char *begin, const char *end, const char *fmt, int ops, ...);
+
+
+int
+cjson_match(const char *str,  struct cjson_match *fs, void *prv);
+
+int
+cjson_match_ptr(const char *begin, const char *end, struct cjson_match *fs, void *prv);
+
+
+
+int
+cjson_map(const char *str,  struct cjson_map *fs, void *prv);
+
+int
+cjson_map_ptr(const char *begin, const char *end, struct cjson_map *fs, void *prv);
+
+
 
 
 #ifdef __cplusplus

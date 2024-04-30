@@ -37,7 +37,15 @@ extern "C" {
 # define CHECK_ST	CHECK_ST_N
 #endif
 
-/*utils begin*/
+
+#define JUMPD		1
+#define JUMPO		2
+#define JUMPA		3
+#define JUMPB		4
+#define JUMPN		5
+#define JUMPNUM		6
+
+/* utils begin */
 
 static int
 jump(const char **str);
@@ -77,11 +85,13 @@ key_len(const char *str)
 		++len;
 	return (len);
 }
-/*utils begin*/
+/* utils begin */
 
 
 
-/*return operations begin*/
+
+/* return operations begin */
+
 static int
 buff_ops(const char *begin, const char *end, va_list *args)
 {
@@ -145,9 +155,12 @@ ret_ops(const char *begin, const char *end, int ops, va_list *args)
 	return (0);
 }
 
-/*return operations end*/
+/* return operations end */
 
 
+
+
+/* Jump operations begin */
 
 static int
 jump_dquote(const char **str)
@@ -274,36 +287,128 @@ jump_number(const char **str)
 }
 
 static int
+jump_bool(const char **str)
+{
+	if (!strncmp("true", *str, sizeof("true") - 1))
+		return ((*str += sizeof("true") - 1), 0);
+	else if (!strncmp("false", *str, sizeof("fasle") - 1))
+		return ((*str += sizeof("fasle") - 1), 0);
+	else
+		return (-ESTR);
+}
+
+static int
+jump_null(const char **str)
+{
+	if (!strncmp("null", *str, sizeof("null") - 1))
+		return ((*str += sizeof("null") - 1), 0);
+	else
+		return (-ESTR);
+}
+
+static int
 jump(const char **str)
 {
 	switch(**str)
 	{
 		case '"':
-			return (jump_dquote(str));
+			return (0 > jump_dquote(str)? -ESTR: JUMPD);
 		case '{':
-			return (jump_object(str));
+			return (0 > jump_object(str)? -ESTR: JUMPO);
 		case '[':
-			return (jump_array(str));	
+			return (0 > jump_array(str)? -ESTR: JUMPA);	
 		case 't':
-			if (!strncmp("true", *str, sizeof("true") - 1))
-				return ((*str += sizeof("true") - 1), 0);
-			break ;
 		case 'f':
-			if (!strncmp("false", *str, sizeof("fasle") - 1))
-				return ((*str += sizeof("fasle") - 1), 0);
-			break ;
+			return (0 > jump_bool(str)? -ESTR: JUMPB);
 		case 'n':
-			if (!strncmp("null", *str, sizeof("null") - 1))
-				return ((*str += sizeof("null") - 1), 0);
-			break ;
+			return (0 > jump_null(str)? -ESTR: JUMPN);
 		default:
 			if (**str && (isdigit(**str) || '-' == **str))
-				return (jump_number(str));
+				return (0 > jump_number(str)? -ESTR: JUMPNUM);
 			else
 				CHECK_ST(1, -ESTR, "Error: jump: [-ESTR] line %d\n", __LINE__);
 	}
-	return (-1);
+	return (-ESTR);
 }
+
+/* jump operations end */
+
+
+
+
+/* map operations begin */
+
+static int
+map_object(const char *str, struct cjson_map *fs, void *prv)
+{
+	const char	*b_key;
+	const char	*e_key;
+	const char	*b_obj;
+	const char	*e_obj;
+
+	++str;
+	CHECK_ST(0 > space_iter(&str), -ESTR, "Error: map_object: [-ESTR]: line %d\n", __LINE__);
+	if (*str == '}')
+		;
+	else while (*str)
+	{
+		CHECK_ST( '\"' != *str , -ESTR, "Error: map_object: [-ESTR]: line %d\n", __LINE__);
+		b_key = str;
+		CHECK_ST(0 > jump_dquote(&str) , -ESTR, "Error: map_object: [-ESTR]: line %d\n", __LINE__);
+		CHECK_ST(!*str , -ESTR, "Error: map_object: [-ESTR]: line %d\n", __LINE__);
+		e_key = str;
+		CHECK_ST(0 > space_iter(&str), -ESTR, "Error: map_object: [-ESTR]: line %d\n", __LINE__);
+		CHECK_ST(*str != ':' , -ESTR, "Error: map_object: [-ESTR]: line %d\n", __LINE__);
+		++str;
+		CHECK_ST(0 > space_iter(&str), -ESTR, "Error: map_object: [-ESTR]: line %d\n", __LINE__);
+		b_obj = str;
+		if (0 > jump(&str))
+			return (-1);
+		e_obj = str;
+		CHECK_ST(0 > space_iter(&str), -ESTR, "Error: map_object: [-ESTR]: line %d\n", __LINE__);
+		fs->obj(prv, b_key, e_key, b_obj, e_obj);
+		if (*str == '}')
+			break ;
+		CHECK_ST(',' != *str, -ESTR, "Error: map_object: [-ESTR]: line %d\n", __LINE__);
+		++str;
+		CHECK_ST(0 > space_iter(&str), -ESTR, "Error: map_object: [-ESTR]: line %d\n", __LINE__);
+	}
+	return (0);
+}
+
+static int
+map_array(const char *str, struct cjson_map *fs, void *prv)
+{
+	const char	*b_obj;
+	const char	*e_obj;
+
+	++str;
+	CHECK_ST(0 > space_iter(&str), -ESTR, "Error: jump_array: [-ESTR]: line %d\n", __LINE__);
+	if (*str == ']')
+		;
+	else while (*str)
+	{
+		b_obj = str;
+		if (0 > jump(&str))
+			return (-1);
+		e_obj = str;
+		CHECK_ST(0 > space_iter(&str), -ESTR, "Error: jump_array: [-ESTR]: line %d\n", __LINE__);
+		fs->arr(prv, b_obj, e_obj);
+		if (*str == ']')
+			break ;
+		CHECK_ST(',' != *str, -ESTR, "Error: jump_array: [-ESTR]: line %d\n", __LINE__);
+		++str;
+		CHECK_ST(0 > space_iter(&str), -ESTR, "Error: jump_array: [-ESTR]: line %d\n", __LINE__);
+	}
+	return (0);
+}
+
+/* map operations end */
+
+
+
+
+/* format operations begin */
 
 static int
 fmt_array(const char *fmt, const char **begin, const char **end)
@@ -405,6 +510,11 @@ fmt_ops(const char **begin, const char **end, const char *fmt)
 	return  (parse_ops(begin, end, fmt));
 }
 
+/* format operations end */
+
+
+
+
 static int
 parse_ops(const char **begin, const char **end, const char *fmt)
 {
@@ -418,6 +528,48 @@ parse_ops(const char **begin, const char **end, const char *fmt)
 	return (fmt_ops(begin, end, fmt));
 }
 
+static int
+match_ops(const char **begin, const char **end, struct cjson_match *fs, void *prv)
+{
+	int		status;
+	const char	*str;
+
+	str = *begin;
+	status = jump(&str);
+	CHECK_ST(0 > status, status, "\n");
+	CHECK_ST(*end != str, -ESTR,  "Error: parse_ops: [-ESTR]: line %d\n", __LINE__);
+	switch (status)
+	{
+		case JUMPO:	return(fs->obj? (fs->obj(prv, *begin, *end), 0): -EOPS);
+		case JUMPA:	return(fs->arr? (fs->arr(prv, *begin, *end), 0): -EOPS);
+		case JUMPD:	return(fs->str? (fs->str(prv, *begin, *end), 0): -EOPS);
+		case JUMPNUM:	return(fs->num? (fs->num(prv, *begin, *end), 0): -EOPS);
+		case JUMPB: 	return(fs->bl? (fs->bl(prv, *begin, *end), 0): -EOPS);
+		case JUMPN:	 return(fs->null? (fs->null(prv, *begin, *end), 0): -EOPS);
+		default:	return (-ESTR);
+	}
+	return (-ESTR);
+}
+
+static int
+map_ops(const char **begin, const char **end, struct cjson_map *fs, void *prv)
+{
+	int		status;
+	const char	*str;
+
+	str = *begin;
+	status = jump(&str);
+	CHECK_ST(0 > status, status, "\n");
+	CHECK_ST(*end != str, -ESTR,  "Error: parse_ops: [-ESTR]: line %d\n", __LINE__);
+	switch (status)
+	{
+		case JUMPO:	return(fs->obj? map_object(*begin, fs, prv ): -EOPS);
+		case JUMPA:	return(fs->arr? map_array(*begin, fs, prv): -EOPS);
+		default:	return (-ESTR);
+	}
+	return (-ESTR);
+}
+
 int
 cjson_parse_str(const char *str, const char *fmt, int ops, ...)
 {
@@ -427,7 +579,7 @@ cjson_parse_str(const char *str, const char *fmt, int ops, ...)
 	const char	*end;
 
 	if (!str || !fmt)
-		return (-1);
+		return (-EINP);
 	begin = str;
 	end = begin + strlen(str);
 	CHECK_ST(0 > space_iter(&begin), -ESTR, "Error: cjeson_parse: [-ESTR]: line %d\n", __LINE__);
@@ -446,8 +598,8 @@ cjson_parse_ptr(const char *begin, const char *end, const char *fmt, int ops, ..
 	va_list		args;
 	int		status;
 
-	if (!begin || !end || !fmt)
-		return (-1);
+	if (!begin || !end || !fmt || begin >= end)
+		return (-EINP);
 	CHECK_ST(0 > space_iter(&begin), -ESTR, "Error: cjeson_parse: [-ESTR]: line %d\n", __LINE__);
 	CHECK_ST(0 > space_iter_rev(&end, begin), -ESTR, "Error: cjson_parse: [-ESTR]: line %d\n", __LINE__);
 	va_start(args, ops);
@@ -456,6 +608,56 @@ cjson_parse_ptr(const char *begin, const char *end, const char *fmt, int ops, ..
 		status = ret_ops(begin, end, ops, &args);
 	va_end(args);
 	return (status);
+}
+
+int
+cjson_match(const char *str,  struct cjson_match *fs, void *prv)
+{
+	const char	*begin;
+	const char	*end;
+
+	if (!str || !fs)
+		return (-EINP);
+	begin = str;
+	end = begin + strlen(str);
+	CHECK_ST(0 > space_iter(&begin), -ESTR, "Error: cjson_match: [-ESTR]: line %d\n", __LINE__);
+	CHECK_ST(0 > space_iter_rev(&end, begin), -ESTR, "Error: cjson_match: [-ESTR]: line %d\n", __LINE__);
+	return (match_ops(&begin, &end, fs, prv));
+}
+
+int
+cjson_match_ptr(const char *begin, const char *end,  struct cjson_match *fs, void *prv)
+{
+	if (!begin || !end || !fs|| begin >= end)
+		return (-EINP);
+	CHECK_ST(0 > space_iter(&begin), -ESTR, "Error: cjson_match: [-ESTR]: line %d\n", __LINE__);
+	CHECK_ST(0 > space_iter_rev(&end, begin), -ESTR, "Error: cjson_match: [-ESTR]: line %d\n", __LINE__);
+	return (match_ops(&begin, &end, fs, prv));
+}
+
+int
+cjson_map(const char *str,  struct cjson_map *fs, void *prv)
+{
+	const char	*begin;
+	const char	*end;
+
+	if (!str || !fs)
+		return (-EINP);
+	begin = str;
+	end = begin + strlen(str);
+	CHECK_ST(0 > space_iter(&begin), -ESTR, "Error: cjson_match: [-ESTR]: line %d\n", __LINE__);
+	CHECK_ST(0 > space_iter_rev(&end, begin), -ESTR, "Error: cjson_match: [-ESTR]: line %d\n", __LINE__);
+	return (map_ops(&begin, &end, fs, prv));
+}
+
+int
+cjson_map_ptr(const char *begin, const char *end,  struct cjson_map *fs, void *prv)
+{
+	if (!begin || !end || !fs|| begin >= end)
+		return (-EINP);
+	CHECK_ST(0 > space_iter(&begin), -ESTR, "Error: cjson_match: [-ESTR]: line %d\n", __LINE__);
+	CHECK_ST(0 > space_iter_rev(&end, begin), -ESTR, "Error: cjson_match: [-ESTR]: line %d\n", __LINE__);
+	return (map_ops(&begin, &end, fs, prv));
 }
 
 # undef CHECK_ST
